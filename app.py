@@ -1,8 +1,6 @@
 from core.spotify_client import get_spotify_client, get_playlist_tracks
 from core.youtube_client import (
-    get_youtube_service_api_key,
     get_youtube_service_oauth,
-    search_youtube,
     create_youtube_playlist,
     add_video_to_playlist
 )
