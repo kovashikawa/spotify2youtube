@@ -9,7 +9,7 @@ from utils.helpers import create_search_query
 def main():
     # 1. Spotify
     spotify = get_spotify_client()
-    playlist_id = "YOUR_SPOTIFY_PLAYLIST_ID"  # or pass via argument
+    playlist_id = "2uzV2b2iL7mEccikj405EM"  # or pass via argument
     spotify_tracks = get_playlist_tracks(spotify, playlist_id)
 
     # 2. YouTube (choose API key or OAuth approach)
