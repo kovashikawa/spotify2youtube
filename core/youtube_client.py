@@ -33,6 +33,22 @@ def get_youtube_service_oauth():
     youtube = build('youtube', 'v3', credentials=credentials)
     return youtube
 
+def search_youtube(youtube, query):
+    """
+    Searches YouTube for the given query and returns the first video's ID.
+    """
+    request = youtube.search().list(
+        q=query,
+        part="id,snippet",
+        type="video",
+        maxResults=1
+    )
+    response = request.execute()
+    items = response.get("items", [])
+    if not items:
+        return None
+    return items[0]["id"]["videoId"]
+
 def create_youtube_playlist(youtube, title, description, privacy_status="private"):
     request = youtube.playlists().insert(
         part="snippet,status",
