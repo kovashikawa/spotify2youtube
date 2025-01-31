@@ -1,2 +1,7 @@
 .env
 *.json
+*.pickle
+
+__pycache__/
+*.pyc
+*.pyo
