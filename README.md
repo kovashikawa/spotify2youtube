@@ -17,20 +17,23 @@ YOUTUBE_API_KEY=your-youtube-api-key
 ## folder structure:
 ```
 spotify2youtube/
-├── app.py
-├── requirements.txt
-├── .gitignore
-├── .env                      # environment variables
-├── README.md
 ├── config/
 │   ├── __init__.py
-│   ├── credentials.json      # (if using OAuth for YouTube)
 │   └── settings.py
 ├── core/
 │   ├── __init__.py
-│   ├── spotify_client.py     # handles Spotify logic
-│   └── youtube_client.py     # handles YouTube logic
-└── utils/
-    ├── __init__.py
-    └── helpers.py            # convenience functions
+│   ├── spotify_client.py       # Contains both client credentials and OAuth functions
+│   └── youtube_client.py       # Contains YouTube OAuth and playlist functions
+├── routers/
+│   ├── __init__.py
+│   ├── connection.py           # For testing connectivity
+│   └── playlist.py             # Contains both conversion endpoints
+├── utils/
+│   ├── __init__.py
+│   └── helpers.py              # Contains helper functions (like query builders)
+├── main.py
+├── requirements.txt
+├── .env
+└── config/
+    └── credentials.json        # OAuth client secrets for YouTube
 ```

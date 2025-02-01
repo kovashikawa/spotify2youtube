@@ -1,5 +1,6 @@
+fastapi
+uvicorn
 python-dotenv
 spotipy
 google-api-python-client
 google-auth-oauthlib
-requests

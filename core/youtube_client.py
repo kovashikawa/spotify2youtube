@@ -1,5 +1,7 @@
 import os
+import time
 import pickle
+from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
@@ -65,18 +67,76 @@ def create_youtube_playlist(youtube, title, description, privacy_status="private
     response = request.execute()
     return response["id"]
 
-def add_video_to_playlist(youtube, playlist_id, video_id):
-    request = youtube.playlistItems().insert(
-        part="snippet",
-        body={
-            "snippet": {
-                "playlistId": playlist_id,
-                "resourceId": {
-                    "kind": "youtube#video",
-                    "videoId": video_id
+def add_video_to_playlist(youtube, playlist_id, video_id, max_retries=2, initial_delay=5):
+    """
+    Adds a video to a YouTube playlist with retries for transient errors.
+    """
+    retries = 0
+    delay = initial_delay
+    while retries <= max_retries:
+        try:
+            time.sleep(delay)
+            request = youtube.playlistItems().insert(
+                part="snippet",
+                body={
+                    "snippet": {
+                        "playlistId": playlist_id,
+                        "resourceId": {
+                            "kind": "youtube#video",
+                            "videoId": video_id
+                        }
+                    }
                 }
-            }
-        }
+            )
+            return request.execute()
+        except HttpError as e:
+            if retries < max_retries and e.resp.status in [409, 500, 503]:
+                print(f"Error {e.resp.status} adding video {video_id}. Retrying in {delay} seconds...")
+                time.sleep(delay)
+                retries += 1
+                delay *= 2  # exponential backoff
+            else:
+                raise
+
+def get_youtube_service_oauth():
+    """Returns an authenticated YouTube service using OAuth."""
+    credentials = None
+    token_path = "token.pickle"
+
+    if os.path.exists(token_path):
+        with open(token_path, "rb") as token:
+            credentials = pickle.load(token)
+
+    if not credentials or not credentials.valid:
+        if credentials and credentials.expired and credentials.refresh_token:
+            credentials.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                "config/credentials.json", scopes=YOUTUBE_SCOPES
+            )
+            credentials = flow.run_local_server(port=8080)
+        with open(token_path, "wb") as token:
+            pickle.dump(credentials, token)
+
+    return build("youtube", "v3", credentials=credentials)
+
+def get_youtube_playlist_items(youtube, playlist_id):
+    """Fetches all video items from the given YouTube playlist."""
+    items = []
+    request = youtube.playlistItems().list(
+        part="snippet",
+        playlistId=playlist_id,
+        maxResults=50
     )
-    return request.execute()
-    
+    response = request.execute()
+    items.extend(response.get("items", []))
+    while "nextPageToken" in response:
+        request = youtube.playlistItems().list(
+            part="snippet",
+            playlistId=playlist_id,
+            maxResults=50,
+            pageToken=response["nextPageToken"]
+        )
+        response = request.execute()
+        items.extend(response.get("items", []))
+    return items
