@@ -30,6 +30,7 @@ spotify2youtube/
 │   └── playlist.py             # Contains both conversion endpoints
 ├── utils/
 │   ├── __init__.py
+│   ├── logger.py
 │   └── helpers.py              # Contains helper functions (like query builders)
 ├── main.py
 ├── requirements.txt
