@@ -99,22 +99,35 @@ def add_video_to_playlist(youtube, playlist_id, video_id, max_retries=2, initial
                 raise
 
 def get_youtube_service_oauth():
-    """Returns an authenticated YouTube service using OAuth."""
+    """Returns an authenticated YouTube service using OAuth.
+    If the cached token is expired or revoked, it refreshes or triggers a new OAuth flow.
+    """
     credentials = None
     token_path = "token.pickle"
 
+    # Attempt to load existing credentials
     if os.path.exists(token_path):
         with open(token_path, "rb") as token:
             credentials = pickle.load(token)
 
+    # If no credentials or they are invalid, try to refresh them
     if not credentials or not credentials.valid:
         if credentials and credentials.expired and credentials.refresh_token:
-            credentials.refresh(Request())
-        else:
+            try:
+                credentials.refresh(Request())
+            except Exception as e:
+                # If refresh fails, delete the token file and force a new OAuth flow
+                os.remove(token_path)
+                credentials = None
+
+        # If we still have no valid credentials, run the OAuth flow
+        if not credentials or not credentials.valid:
             flow = InstalledAppFlow.from_client_secrets_file(
                 "config/credentials.json", scopes=YOUTUBE_SCOPES
             )
             credentials = flow.run_local_server(port=8080)
+
+        # Save the new credentials for future use
         with open(token_path, "wb") as token:
             pickle.dump(credentials, token)
 
