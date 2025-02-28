@@ -43,7 +43,7 @@ def get_spotify_oauth_client():
         client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
         redirect_uri=os.getenv("SPOTIFY_REDIRECT_URI"),
         scope="playlist-modify-private playlist-modify-public",
-        cache_path=".cache-spotify"
+        cache_path="config/.cache-spotify"
     )
 
     token_info = sp_oauth.get_cached_token()
