@@ -22,19 +22,22 @@ spotify2youtube/
 │   └── settings.py
 ├── core/
 │   ├── __init__.py
-│   ├── spotify_client.py       # Contains both client credentials and OAuth functions
-│   └── youtube_client.py       # Contains YouTube OAuth and playlist functions
+│   ├── spotify_client.py
+│   └── youtube_client.py
+├── database/
+│   ├── __init__.py
+│   └── firestore_ops.py
 ├── routers/
 │   ├── __init__.py
-│   ├── connection.py           # For testing connectivity
-│   └── playlist.py             # Contains both conversion endpoints
+│   ├── connection.py
+│   └── playlist.py
 ├── utils/
 │   ├── __init__.py
-│   ├── logger.py
-│   └── helpers.py              # Contains helper functions (like query builders)
+│   ├── helpers.py
+│   └── logger.py
 ├── main.py
 ├── requirements.txt
 ├── .env
 └── config/
-    └── credentials.json        # OAuth client secrets for YouTube
+    └── credentials.json
 ```

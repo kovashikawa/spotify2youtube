@@ -1,6 +1,7 @@
-fastapi
-uvicorn
-python-dotenv
-spotipy
-google-api-python-client
-google-auth-oauthlib
+fastapi==0.115.8
+uvicorn==0.34.0
+python-dotenv==1.0.1
+spotipy==2.25.0
+google-api-python-client==2.161.0
+google-auth-oauthlib==1.2.1
+firebase-admin==6.6.0
