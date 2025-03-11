@@ -2,10 +2,8 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import datetime
 
-# Initialize Firebase Admin if not already initialized.
 if not firebase_admin._apps:
-    # Replace 'path/to/serviceAccountKey.json' with the path to your Firebase service account JSON file.
-    cred = credentials.Certificate("path/to/serviceAccountKey.json")
+    cred = credentials.Certificate("config/keyFirestoreDB.json")
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()

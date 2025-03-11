@@ -25,7 +25,7 @@ def get_youtube_service_oauth():
         else:
             # Make sure client_secret.json is in config/ folder, or update path accordingly
             flow = InstalledAppFlow.from_client_secrets_file(
-                'config/credentials.json',
+                os.path.join("config", "credentials.json"),
                 scopes=YOUTUBE_SCOPES
             )
             credentials = flow.run_local_server(port=8080)
