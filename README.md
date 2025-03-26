@@ -109,6 +109,7 @@ FIRESTORE_PROJECT_ID=your_firestore_project_id
    - Create a new Firestore project in Google Cloud Console
    - Download the service account credentials JSON file
    - Place it in `config/firestore-credentials.json`
+   - You might need GCP SDK installed too (`brew install --cask google-cloud-sdk`)
 
 5. Run the application:
 ```bash

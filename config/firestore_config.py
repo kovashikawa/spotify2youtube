@@ -2,6 +2,7 @@ from google.cloud import firestore
 from google.oauth2 import service_account
 import os
 from typing import Optional, Dict, Any
+from config.settings import FIRESTORE_PROJECT_ID
 
 class FirestoreClient:
     _instance: Optional['FirestoreClient'] = None
@@ -22,8 +23,12 @@ class FirestoreClient:
                 credentials_path
             )
             
-            # Initialize Firestore client
-            self._db = firestore.Client(credentials=credentials)
+            # Initialize Firestore client with project and database
+            self._db = firestore.Client(
+                credentials=credentials,
+                project=FIRESTORE_PROJECT_ID,
+                database="spotify2youtube"
+            )
 
     @property
     def db(self) -> firestore.Client:

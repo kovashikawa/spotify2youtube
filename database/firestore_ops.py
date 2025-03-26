@@ -2,12 +2,33 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import datetime
 from typing import Optional, Dict, Any, List
+from config.firestore_config import FirestoreClient
 
-if not firebase_admin._apps:
-    cred = credentials.Certificate("config/firestore-credentials.json")
-    firebase_admin.initialize_app(cred)
+# Initialize Firestore client
+db = FirestoreClient().db
 
-db = firestore.client()
+def get_existing_track_link(track_id: str, platform: str) -> Optional[Dict[str, Any]]:
+    """
+    Check if a track link exists for a given track ID from either platform.
+    Returns the track link document if found, None otherwise.
+    
+    Args:
+        track_id: The track ID to search for
+        platform: 'spotify' or 'youtube'
+    """
+    track_links_ref = db.collection("track_links").document("spotify_youtube").collection("items")
+    
+    # Query based on the platform
+    if platform == "spotify":
+        query = track_links_ref.where("spotify_track_id", "==", track_id)
+    else:  # youtube
+        query = track_links_ref.where("youtube_track_id", "==", track_id)
+    
+    # Get the first matching document
+    docs = query.limit(1).stream()
+    for doc in docs:
+        return doc.to_dict()
+    return None
 
 def store_user(user_id: str, spotify_id: str, youtube_id: str, email: str):
     """
