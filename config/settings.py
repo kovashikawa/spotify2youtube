@@ -6,6 +6,7 @@ load_dotenv()  # Loads variables from .env
 # Spotify Configuration
 SPOTIFY_CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
 SPOTIFY_CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
+SPOTIFY_REDIRECT_URI = os.getenv('SPOTIFY_REDIRECT_URI', 'http://localhost:8000/callback')
 
 # YouTube Configuration
 YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY')  # if using API key for search

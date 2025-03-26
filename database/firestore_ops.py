@@ -4,7 +4,7 @@ import datetime
 from typing import Optional, Dict, Any, List
 
 if not firebase_admin._apps:
-    cred = credentials.Certificate("config/keyFirestoreDB.json")
+    cred = credentials.Certificate("config/firestore-credentials.json")
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()

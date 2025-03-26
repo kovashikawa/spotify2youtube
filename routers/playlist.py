@@ -12,9 +12,8 @@ logger = setup_logger(__name__)
 
 # Import functions for Spotify → YouTube conversion
 from core.spotify_client import (
-    get_spotify_client,
+    get_spotify_oauth_client,
     get_playlist_tracks,
-    get_spotify_oauth_client, 
     create_spotify_playlist,
     add_tracks_to_spotify_playlist
     )
@@ -51,8 +50,8 @@ async def convert_spotify_to_youtube(request: SpotifyToYouTubeConversionRequest)
     try:
         logger.info("Starting Spotify to YouTube conversion")
 
-        # Initialize clients
-        spotify = get_spotify_client()
+        # Initialize clients with OAuth
+        spotify = get_spotify_oauth_client()
         youtube = get_youtube_service_oauth()
         
         # Get user information
