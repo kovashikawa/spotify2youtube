@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from utils.helpers import create_search_query, create_spotify_search_query, choose_best_track
 from utils.logger import setup_logger
@@ -36,15 +36,16 @@ class SpotifyToYouTubeConversionRequest(BaseModel):
         "Created by Spotify2YouTube",
         example="Created by Spotify2YouTube"
     )
-
-    class Config:
-        schema_extra = {
+    
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "spotify_playlist_id": "2uzV2b2iL7mEccikj405EM",
                 "youtube_playlist_title": "Liked from Radio (spotify)",
                 "youtube_playlist_description": "Created by Spotify2YouTube"
             }
         }
+    )
 
 @router.post("/playlist/spotify-to-youtube", summary="Convert a Spotify playlist to a YouTube playlist")
 async def convert_spotify_to_youtube(request: SpotifyToYouTubeConversionRequest):
@@ -214,15 +215,16 @@ class YouTubeToSpotifyConversionRequest(BaseModel):
         "Created by Spotify2YouTube",
         example="Created by Spotify2YouTube"
     )
-
-    class Config:
-        schema_extra = {
+    
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "youtube_playlist_id": "PLxxxxxxxx",
                 "spotify_playlist_name": "YouTube Playlist",
                 "spotify_playlist_description": "Created by Spotify2YouTube"
             }
         }
+    )
 
 @router.post("/playlist/youtube-to-spotify", summary="Convert a YouTube playlist to a Spotify playlist")
 async def convert_youtube_to_spotify(request: YouTubeToSpotifyConversionRequest):
