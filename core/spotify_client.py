@@ -35,8 +35,8 @@ def get_spotify_client() -> spotipy.Spotify:
         # Create and return the client
         client = spotipy.Spotify(auth_manager=auth_manager)
         
-        # Test the connection
-        client.current_user()  # This will raise an exception if not authenticated
+        # Test the connection with a simple API call that doesn't require user auth
+        client.search('test', limit=1)
         
         logger.info("Successfully created Spotify client with client credentials")
         return client
@@ -86,11 +86,27 @@ def get_spotify_oauth_client() -> spotipy.Spotify:
         # Create and return the client
         client = spotipy.Spotify(auth_manager=auth_manager)
         
-        # Test the connection
-        client.current_user()  # This will raise an exception if not authenticated
-        
-        logger.info("Successfully created Spotify OAuth client")
-        return client
+        # Test the connection with current_user
+        try:
+            client.current_user()
+            logger.info("Successfully created Spotify OAuth client")
+            return client
+        except SpotifyException as e:
+            if e.http_status == 401:
+                logger.info("No valid token found, starting OAuth flow")
+                # Get the authorization URL
+                auth_url = auth_manager.get_authorize_url()
+                print(f"\nPlease navigate here: {auth_url}")
+                response = input("Paste the URL you were redirected to: ")
+                code = auth_manager.parse_response_code(response)
+                token_info = auth_manager.get_access_token(code)
+                # Create a new client with the token
+                client = spotipy.Spotify(auth=token_info["access_token"])
+                logger.info("Successfully authenticated with Spotify")
+                return client
+            else:
+                raise
+                
     except SpotifyException as e:
         logger.error(f"Failed to create Spotify OAuth client: {str(e)}")
         raise

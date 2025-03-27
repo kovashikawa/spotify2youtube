@@ -53,6 +53,7 @@ logs/
 .spotify_token
 .youtube_token
 .cache
+config/.spotify_cache
 
 # Jupyter Notebook
 .ipynb_checkpoints
