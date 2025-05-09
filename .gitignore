@@ -24,6 +24,7 @@ coverage.xml
 *.cover
 *.py,cover
 .hypothesis/
+.cache*
 
 # Distribution / packaging
 dist/
