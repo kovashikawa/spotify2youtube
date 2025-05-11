@@ -27,9 +27,7 @@ services:
   airflow-init:
     <<: *airflow-common
     environment:
-      AIRFLOW_CMD: "airflow db upgrade && airflow users create \
-        --username admin --password admin --firstname admin --lastname admin \
-        --role Admin --email admin@example.com"
+      AIRFLOW_CMD: "bash -c 'airflow db migrate && airflow users create --username admin --password admin --firstname admin --lastname admin --role Admin --email admin@example.com'"
     depends_on: [postgres]
 
   airflow-dag-processor:

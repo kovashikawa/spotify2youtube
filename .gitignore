@@ -55,6 +55,7 @@ logs/
 .youtube_token
 .cache
 config/.spotify_cache
+airflow/airflowVenv
 
 # Jupyter Notebook
 .ipynb_checkpoints
