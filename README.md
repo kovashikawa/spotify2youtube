@@ -62,6 +62,62 @@ A FastAPI application that converts playlists between Spotify and YouTube.
    docker-compose down
    ```
 
+## Airflow Integration
+
+The project now includes Apache Airflow integration for automated playlist synchronization. This setup ensures your Firestore database is always populated with fresh user playlists, tracks, and cross-links.
+
+### Airflow Setup
+
+1. The Airflow stack is configured in `docker-compose.yml` and includes:
+   - Airflow webserver and scheduler
+   - PostgreSQL database
+   - Mounted volumes for DAGs and credentials
+
+2. Credential Management:
+   - Place your credentials in the `credentials/` directory:
+     - `service_account.json` (GCP service account)
+     - `.youtube_token` (YouTube OAuth pickle)
+   - Environment variables in `.env` (Spotify and Firebase configs)
+
+3. Starting Airflow:
+   ```bash
+   docker-compose up --build
+   ```
+   - Access the Airflow UI at `http://localhost:8080` (admin/admin)
+   - Unpause the `spotify_youtube_sync` DAG to start synchronization
+
+### DAG Details
+
+The `spotify_youtube_sync` DAG:
+- Runs every 6 hours
+- Authenticates with Spotify
+- Fetches user playlists
+- Processes tracks and creates YouTube links
+- Stores everything in Firestore
+
+### Important Considerations
+
+1. Rate Limits:
+   - Spotify: 10,000 requests/day
+   - YouTube: 10,000 units/day
+   - Consider adjusting the schedule or implementing throttling
+
+2. Firestore Costs:
+   - Each track requires a write operation
+   - Consider partitioning old data to GCS for cost optimization
+
+3. YouTube Matching:
+   - Current implementation uses basic first-hit search
+   - Future improvements could include fuzzy matching or YouTube Music API
+
+4. Multi-User Support:
+   - Currently configured for single user
+   - Can be extended using Airflow Variables/Secrets for multiple users
+
+5. Development Notes:
+   - The repo is mounted directly into the Airflow container
+   - Future improvement: Package as pip-installable module
+
 ## API Documentation
 
 Once the application is running, you can access:
