@@ -4,6 +4,9 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.utils.task_group import TaskGroup
 
+from airflow.utils.log.logging_mixin import LoggingMixin
+logger = LoggingMixin().log
+
 # add repo to PYTHONPATH
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).parents[1] / "spotify2youtube"))
@@ -18,7 +21,7 @@ from database.firestore_ops import (
 DEFAULT_ARGS = {
     "owner": "spotify2youtube",
     "retries": 1,
-    "retry_delay": timedelta(minutes=5),
+    "retry_delay": timedelta(seconds=15),
 }
 
 with DAG(
@@ -32,7 +35,13 @@ with DAG(
 
     @task()
     def authenticate():
-        return get_spotify_oauth_client()
+        try:
+            sp = get_spotify_oauth_client()
+            logger.info("Authenticate task returned: %s", sp)
+            return sp
+        except Exception as e:
+            logger.error("Authenticate task failed: %s", e, exc_info=True)
+            raise
 
     @task()
     def list_playlists(sp):
