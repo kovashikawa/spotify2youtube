@@ -1,9 +1,9 @@
-version: "3.9"
+# docker-compose.yml
 
 x-airflow-common: &airflow-common
   image: apache/airflow:3.0.0-python3.11
   platform: linux/amd64          # remove if you’re on Intel/AMD Linux
-  restart: on-failure            # retry on crash
+  # restart: on-failure            # retry on crash
   env_file: .env
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -11,10 +11,10 @@ x-airflow-common: &airflow-common
     AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: admin:admin
-  volumes:                       # <-- correct key & indentation
+  volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/requirements.txt:/requirements.txt
-    - ./spotify2youtube:/opt/airflow/spotify2youtube
+    - ./:/opt/airflow/spotify2youtube
     - ./credentials:/opt/airflow/credentials:ro
   command: >
     bash -c "
@@ -38,6 +38,7 @@ services:
     command: >
       bash -c "
         pip install -r /requirements.txt &&
+        pip install -e /opt/airflow/spotify2youtube &&
         airflow db migrate
       "
     depends_on: [postgres]

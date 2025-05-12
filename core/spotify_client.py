@@ -19,7 +19,7 @@ SPOTIFY_TOKEN_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "c
 def get_spotify_client() -> spotipy.Spotify:
     """
     Get a Spotify client using client credentials flow.
-    This is for app-level operations that don't require user authentication.
+    This is for app-level operations that doesn't require user authentication.
     """
     try:
         # Initialize the secure cache handler
