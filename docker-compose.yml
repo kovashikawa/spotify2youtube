@@ -2,19 +2,26 @@ version: "3.9"
 
 x-airflow-common: &airflow-common
   image: apache/airflow:3.0.0-python3.11
-  platform: linux/amd64
+  platform: linux/amd64          # remove if you’re on Intel/AMD Linux
+  restart: on-failure            # retry on crash
   env_file: .env
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
     AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
-  volumes:
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: admin:admin
+  volumes:                       # <-- correct key & indentation
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/requirements.txt:/requirements.txt
     - ./spotify2youtube:/opt/airflow/spotify2youtube
     - ./credentials:/opt/airflow/credentials:ro
-  command: bash -c "pip install -r /requirements.txt && exec $$AIRFLOW_CMD"
+  command: >
+    bash -c "
+      pip install -r /requirements.txt &&
+      pip install -e /opt/airflow/spotify2youtube &&
+      exec $$AIRFLOW_CMD
+    "
 
 services:
   postgres:
@@ -24,18 +31,14 @@ services:
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data   # renamed
 
   airflow-init:
     <<: *airflow-common
     command: >
       bash -c "
         pip install -r /requirements.txt &&
-        airflow db migrate &&
-        airflow users create \
-          --username admin --password admin \
-          --firstname admin --lastname admin \
-          --role Admin --email admin@example.com
+        airflow db migrate
       "
     depends_on: [postgres]
 
@@ -53,10 +56,10 @@ services:
 
   airflow-api-server:
     <<: *airflow-common
-    ports: [ "8080:8080" ]
+    ports: ["8080:8080"]
     environment: { AIRFLOW_CMD: "airflow api-server" }
     depends_on: [airflow-init, airflow-dag-processor]
     restart: unless-stopped
 
 volumes:
-  postgres: 
+  postgres_data:                 # named volume matches the reference above
