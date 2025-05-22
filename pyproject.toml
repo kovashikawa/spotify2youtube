@@ -1,0 +1,13 @@
+# pyproject.toml
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spotify2youtube"
+version = "0.0.1"
+description = "Sync Spotify playlists to YouTube"
+authors = [{name = "Rafael"}]
+
+# add real runtime deps here if you have any
+dependencies = []
