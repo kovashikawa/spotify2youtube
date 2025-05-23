@@ -153,3 +153,33 @@ def get_playlist_tracks(user_id: str, playlist_id: str) -> List[Dict[str, Any]]:
             tracks.append(track)
     
     return tracks
+
+def get_all_tracks() -> List[Dict[str, Any]]:
+    """
+    Fetch all tracks from Firestore.
+    
+    WARNING: This function should be used sparingly and only for migration/backup purposes.
+    It performs a full collection scan which can be expensive and slow for large datasets.
+    For regular application use, prefer querying specific tracks or using pagination.
+    
+    Returns:
+        List of track documents with their metadata
+    """
+    tracks = []
+    users_ref = db.collection("users")
+    
+    for user_doc in users_ref.stream():
+        playlists_ref = user_doc.reference.collection("playlists")
+        
+        for playlist_doc in playlists_ref.stream():
+            tracks_ref = playlist_doc.reference.collection("tracks")
+            
+            for track_doc in tracks_ref.stream():
+                data = track_doc.to_dict()
+                if not data.get("vector_indexed", False):
+                    data["doc_id"] = track_doc.id
+                    data["user_id"] = user_doc.id
+                    data["playlist_id"] = playlist_doc.id
+                    tracks.append(data)
+    
+    return tracks

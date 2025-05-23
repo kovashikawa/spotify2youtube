@@ -3,8 +3,9 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.decorators import task
 from airflow.utils.task_group import TaskGroup
-
 from airflow.utils.log.logging_mixin import LoggingMixin
+from qdrant_client.models import PointStruct
+
 logger = LoggingMixin().log
 
 # add repo to PYTHONPATH
@@ -14,6 +15,8 @@ sys.path.append(str(pathlib.Path(__file__).parents[1] / "spotify2youtube"))
 # repo helpers
 from core.spotify_client import get_spotify_oauth_client, get_playlist_tracks
 from core.youtube_client import search_youtube
+from core.vector_db import init_collection, upsert_vectors, search_similar
+from core.embeddings import get_track_embedding
 from database.firestore_ops import (
     store_user, store_playlist, store_track, store_track_link
 )
@@ -30,7 +33,7 @@ with DAG(
     start_date=datetime(2025, 5, 9),
     catchup=False,
     default_args=DEFAULT_ARGS,
-    tags=["spotify", "youtube", "firestore"],
+    tags=["spotify", "youtube", "firestore", "vector"],
 ) as dag:
 
     @task()
@@ -73,10 +76,42 @@ with DAG(
         name = track["name"]
         artists = ", ".join(a["name"] for a in track["artists"])
 
+        # Store in Firestore
         store_track(tid, "spotify", track)
 
-        # naive YT search → first hit
-        yt_id = search_youtube(name + " " + artists)
+        # Get embedding and store in Qdrant
+        embedding = get_track_embedding(track)
+        point = PointStruct(
+            id=tid,
+            vector=embedding,
+            payload={
+                "spotify_id": tid,
+                "track_name": name,
+                "artist": artists,
+                "album": track.get("album", {}).get("name"),
+                "popularity": track.get("popularity")
+            }
+        )
+        upsert_vectors("spotify-tracks", [point])
+
+        # Search for YouTube equivalent using vector similarity
+        similar_tracks = search_similar(
+            collection_name="spotify-tracks",
+            query_vector=embedding,
+            top_k=5
+        )
+        
+        # Use the most similar track's YouTube ID if available
+        yt_id = None
+        for result in similar_tracks:
+            if "youtube_id" in result.payload:
+                yt_id = result.payload["youtube_id"]
+                break
+        
+        # If no YouTube ID found in similar tracks, do a direct search
+        if not yt_id:
+            yt_id = search_youtube(name + " " + artists)
+        
         if yt_id:
             store_track_link(tid, yt_id)
 
