@@ -172,14 +172,37 @@ def get_all_tracks() -> List[Dict[str, Any]]:
         playlists_ref = user_doc.reference.collection("playlists")
         
         for playlist_doc in playlists_ref.stream():
+            playlist_data = playlist_doc.to_dict()
+            platform = playlist_data.get("platform", "spotify")  # Default to spotify if not specified
+            
+            # Get tracks subcollection
             tracks_ref = playlist_doc.reference.collection("tracks")
             
-            for track_doc in tracks_ref.stream():
-                data = track_doc.to_dict()
-                if not data.get("vector_indexed", False):
-                    data["doc_id"] = track_doc.id
-                    data["user_id"] = user_doc.id
-                    data["playlist_id"] = playlist_doc.id
-                    tracks.append(data)
+            for track_ref in tracks_ref.stream():
+                track_data = track_ref.to_dict()
+                track_id = track_data.get("track_id")
+                
+                if not track_id:
+                    continue
+                
+                # Get the actual track metadata from the tracks collection
+                track_metadata = get_track(track_id, platform)
+                if not track_metadata:
+                    continue
+                
+                # Combine the data
+                combined_data = {
+                    "doc_id": track_ref.id,
+                    "user_id": user_doc.id,
+                    "playlist_id": playlist_doc.id,
+                    "track_id": track_id,
+                    "platform": platform,
+                    "vector_indexed": track_data.get("vector_indexed", False),
+                    "added_at": track_data.get("added_at"),
+                    **track_metadata.get("metadata", {})  # Spread the track metadata
+                }
+                
+                if not combined_data.get("vector_indexed", False):
+                    tracks.append(combined_data)
     
     return tracks

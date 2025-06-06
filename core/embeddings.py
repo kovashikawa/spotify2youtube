@@ -1,7 +1,12 @@
+# spotify2youtube/core/embeddings.py
+
 import os
 from openai import OpenAI
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+from dotenv import load_dotenv
+load_dotenv()
+
+client = OpenAI()
 from typing import List, Dict, Any
 import logging
 
@@ -39,7 +44,7 @@ def get_track_embedding(track_data: Dict[str, Any]) -> List[float]:
         List of floats representing the embedding
     """
     # Combine track metadata into a single text
-    text = f"{track_data.get('track_name', '')} - {track_data.get('artist', '')}"
+    text = f"{track_data.get('title', '')} - {track_data.get('artist', '')}"
 
     # Add album if available
     if 'album' in track_data:

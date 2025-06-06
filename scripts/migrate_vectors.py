@@ -12,8 +12,7 @@ from qdrant_client.models import PointStruct
 project_root = str(Path(__file__).parent.parent)
 sys.path.append(project_root)
 
-from core.vector_db import init_collection, upsert_vectors
-from core.embeddings import get_track_embedding
+from core.vector_db import init_collection, upsert_vectors, create_point_struct
 from database.firestore_ops import get_all_tracks
 
 # Configure logging
@@ -21,33 +20,31 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Constants
-COLLECTION_NAME = "spotify-tracks"
-BATCH_SIZE = 500
+COLLECTION_NAME = "music-tracks"  # Changed to be platform-agnostic
+BATCH_SIZE = 10
 
-
-def create_point_struct(track_data: Dict[str, Any]) -> PointStruct:
-    """Create a Qdrant point structure from track data."""
-    embedding = get_track_embedding(track_data)
+def get_firestore_client():
+    """Get Firestore client with proper credentials."""
+    # Try to find credentials in different locations
+    credential_paths = [
+        os.path.join(project_root, "credentials", "service_account.json"),  # Local development
+        "/opt/airflow/credentials/service_account.json",  # Airflow container
+        os.getenv("GOOGLE_APPLICATION_CREDENTIALS")  # Environment variable
+    ]
     
-    return PointStruct(
-        id=track_data["doc_id"],
-        vector=embedding,
-        payload={
-            "spotify_id": track_data.get("spotify_id"),
-            "track_name": track_data.get("track_name"),
-            "artist": track_data.get("artist"),
-            "album": track_data.get("album"),
-            "genres": track_data.get("genres", []),
-            "duration_ms": track_data.get("duration_ms"),
-            "popularity": track_data.get("popularity"),
-            "user_id": track_data.get("user_id"),
-            "playlist_id": track_data.get("playlist_id")
-        }
+    for path in credential_paths:
+        if path and os.path.exists(path):
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = path
+            return firestore.Client()
+    
+    raise FileNotFoundError(
+        "Firestore credentials not found. Please ensure service_account.json exists in one of these locations:\n" +
+        "\n".join(f"- {path}" for path in credential_paths if path)
     )
 
 def mark_as_indexed(doc_id: str) -> None:
     """Mark a document as indexed in Firestore."""
-    db = firestore.Client()
+    db = get_firestore_client()
     doc_ref = db.collection("tracks").document(doc_id)
     doc_ref.update({"vector_indexed": True})
 
@@ -77,7 +74,7 @@ def main():
                     
                     # Mark documents as indexed
                     for point in batch:
-                        mark_as_indexed(point.id)
+                        mark_as_indexed(point.payload["original_track_id"])
                     
                     batch = []
                     logger.info(f"Processed {i}/{len(tracks)} tracks")
@@ -93,7 +90,7 @@ def main():
             
             # Mark documents as indexed
             for point in batch:
-                mark_as_indexed(point.id)
+                mark_as_indexed(point.payload["original_track_id"])
         
         logger.info("Migration completed successfully!")
     
