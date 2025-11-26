@@ -1,79 +1,148 @@
-
 import os
 import spotipy
 from dotenv import load_dotenv
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
-from config.settings import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
+from spotipy.exceptions import SpotifyException
+from config.settings import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REDIRECT_URI
+from typing import Optional, Dict, Any, List
+from utils.logger import setup_logger
+from .secure_cache_handler import SecureCacheFileHandler
 
 load_dotenv()
 
-def get_spotify_client():
+logger = setup_logger(__name__)
+
+# Define cache paths
+SPOTIFY_CACHE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", ".spotify_cache")
+SPOTIFY_TOKEN_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", ".spotify_token")
+
+def get_spotify_client() -> spotipy.Spotify:
     """
-    Returns an authenticated Spotipy client using client credentials flow.
+    Get a Spotify client using client credentials flow.
+    This is for app-level operations that doesn't require user authentication.
     """
-
-    client_credentials_manager = SpotifyClientCredentials(
-        client_id=SPOTIFY_CLIENT_ID,
-        client_secret=SPOTIFY_CLIENT_SECRET
-    )
-
-    return spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-
-def get_playlist_tracks(spotify, playlist_id):
-    """
-    Returns a list of track info (name, artist, etc.) from the given Spotify playlist.
-    """
-    tracks = []
-    results = spotify.playlist_items(playlist_id)
-
-    tracks.extend(results['items'])
-
-    # Pagination
-    while results['next']:
-        results = spotify.next(results)
-        tracks.extend(results['items'])
-
-    return tracks
-
-def get_spotify_oauth_client():
-    """Returns a Spotify client for user-specific operations (e.g. playlist creation) using OAuth."""
-
-    sp_oauth = SpotifyOAuth(
-        client_id=os.getenv("SPOTIFY_CLIENT_ID"),
-        client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
-        redirect_uri=os.getenv("SPOTIFY_REDIRECT_URI"),
-        scope="playlist-modify-private playlist-modify-public",
-        cache_path=".cache-spotify"
-    )
-
-    token_info = sp_oauth.get_cached_token()
-    if not token_info:
-        auth_url = sp_oauth.get_authorize_url()
-        print(f"Please navigate here: {auth_url}")
-        response = input("Paste the URL you were redirected to: ")
-        # Extract code from the URL (a naive extraction – adjust as needed)
-        code = response.split("code=")[-1]
-        token_info = sp_oauth.get_access_token(code)
-
-    return spotipy.Spotify(auth=token_info["access_token"])
-
-def create_spotify_playlist(spotify, user_id, name, description):
-    """Creates a new Spotify playlist and returns its ID."""
-
-    playlist = spotify.user_playlist_create(
-        user=user_id,
-        name=name,
-        public=False,
-        description=description
+    try:
+        # Initialize the secure cache handler
+        cache_handler = SecureCacheFileHandler(cache_path=SPOTIFY_CACHE_PATH)
+        
+        # Create client credentials manager
+        auth_manager = SpotifyClientCredentials(
+            client_id=SPOTIFY_CLIENT_ID,
+            client_secret=SPOTIFY_CLIENT_SECRET,
+            cache_handler=cache_handler
         )
+        
+        # Create and return the client
+        client = spotipy.Spotify(auth_manager=auth_manager)
+        
+        # Test the connection with a simple API call that doesn't require user auth
+        client.search('test', limit=1)
+        
+        logger.info("Successfully created Spotify client with client credentials")
+        return client
+    except SpotifyException as e:
+        logger.error(f"Failed to create Spotify client: {str(e)}")
+        raise
 
-    return playlist.get("id")
+def get_playlist_tracks(spotify: spotipy.Spotify, playlist_id: str) -> List[Dict[str, Any]]:
+    """Get all tracks from a Spotify playlist."""
+    try:
+        results = spotify.playlist_tracks(playlist_id)
+        tracks = results['items']
+        
+        while results['next']:
+            results = spotify.next(results)
+            tracks.extend(results['items'])
+            
+        return tracks
+    except SpotifyException as e:
+        logger.error(f"Failed to get playlist tracks: {str(e)}")
+        raise
 
-def add_tracks_to_spotify_playlist(spotify, playlist_id, track_ids):
-    """Adds a list of track IDs to a Spotify playlist."""
-
-    spotify.user_playlist_add_tracks(
-        user=spotify.current_user()["id"],
-        playlist_id=playlist_id,
-        tracks=track_ids
+def get_spotify_oauth_client() -> spotipy.Spotify:
+    """
+    Get a Spotify client using OAuth flow.
+    This is for user-specific operations that require user authentication.
+    """
+    try:
+        # Initialize the secure cache handler
+        cache_handler = SecureCacheFileHandler(cache_path=SPOTIFY_TOKEN_PATH)
+        
+        # Create OAuth manager
+        auth_manager = SpotifyOAuth(
+            client_id=SPOTIFY_CLIENT_ID,
+            client_secret=SPOTIFY_CLIENT_SECRET,
+            redirect_uri=SPOTIFY_REDIRECT_URI,
+            cache_handler=cache_handler,
+            scope=[
+                "user-library-read",
+                "playlist-read-private",
+                "playlist-read-collaborative",
+                "playlist-modify-public",
+                "playlist-modify-private"
+            ]
         )
+        
+        # Create and return the client
+        client = spotipy.Spotify(auth_manager=auth_manager)
+        
+        # Test the connection with current_user
+        try:
+            client.current_user()
+            logger.info("Successfully created Spotify OAuth client")
+            return client
+        except SpotifyException as e:
+            if e.http_status == 401:
+                logger.info("No valid token found, starting OAuth flow")
+                # Get the authorization URL
+                auth_url = auth_manager.get_authorize_url()
+                print(f"\nPlease navigate here: {auth_url}")
+                response = input("Paste the URL you were redirected to: ")
+                code = auth_manager.parse_response_code(response)
+                token_info = auth_manager.get_access_token(code)
+                # Create a new client with the token
+                client = spotipy.Spotify(auth=token_info["access_token"])
+                logger.info("Successfully authenticated with Spotify")
+                return client
+            else:
+                raise
+                
+    except SpotifyException as e:
+        logger.error(f"Failed to create Spotify OAuth client: {str(e)}")
+        raise
+
+def create_spotify_playlist(
+    spotify: spotipy.Spotify,
+    user_id: str,
+    name: str,
+    description: str = "",
+    public: bool = False
+) -> Optional[str]:
+    """Create a new Spotify playlist."""
+    try:
+        playlist = spotify.user_playlist_create(
+            user_id,
+            name=name,
+            description=description,
+            public=public
+        )
+        return playlist['id']
+    except SpotifyException as e:
+        logger.error(f"Failed to create Spotify playlist: {str(e)}")
+        raise
+
+def add_tracks_to_spotify_playlist(
+    spotify: spotipy.Spotify,
+    playlist_id: str,
+    track_ids: List[str]
+) -> bool:
+    """Add tracks to a Spotify playlist."""
+    try:
+        # Spotify API has a limit of 100 tracks per request
+        for i in range(0, len(track_ids), 100):
+            batch = track_ids[i:i + 100]
+            spotify.playlist_add_items(playlist_id, batch)
+        return True
+    except SpotifyException as e:
+        logger.error(f"Failed to add tracks to Spotify playlist: {str(e)}")
+        raise

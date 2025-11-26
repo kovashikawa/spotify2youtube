@@ -13,20 +13,30 @@ def setup_logger(name: str = None, level: int = logging.INFO) -> logging.Logger:
         logging.Logger: Configured logger instance.
     """
     logger = logging.getLogger(name)
-    logger.setLevel(level)
     
-    # Prevent adding multiple handlers to the same logger.
-    if not logger.handlers:
-        # Create a stream handler to output logs to stdout.
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setLevel(level)
-        
-        # Define a consistent log message format.
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+    # If this is the root logger, configure it
+    if name is None:
+        logger.setLevel(level)
+        if not logger.handlers:
+            handler = logging.StreamHandler(sys.stdout)
+            handler.setLevel(level)
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+    else:
+        # For named loggers, prevent propagation to root logger
+        logger.propagate = False
+        logger.setLevel(level)
+        if not logger.handlers:
+            handler = logging.StreamHandler(sys.stdout)
+            handler.setLevel(level)
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
     
     return logger
 
