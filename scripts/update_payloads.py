@@ -15,13 +15,13 @@ sys.path.append(project_root)
 
 from core.vector_db import update_payloads, create_point_struct
 from database.firestore_ops import get_all_tracks
+from config.vector_config import COLLECTION_NAME
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Constants
-COLLECTION_NAME = "music-tracks"
 BATCH_SIZE = 10
 
 def get_firestore_client() -> firestore.Client:
