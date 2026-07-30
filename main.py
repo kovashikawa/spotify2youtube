@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import connection, playlist
+from routers import connection, playlist, auth
 
 app = FastAPI(
     title="Spotify and YouTube Playlist Converter",
@@ -7,5 +7,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
+app.include_router(auth.router, prefix="/api")
 app.include_router(connection.router, prefix="/api")
 app.include_router(playlist.router, prefix="/api")

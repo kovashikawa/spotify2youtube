@@ -11,6 +11,7 @@ SPOTIFY_REDIRECT_URI = os.getenv('SPOTIFY_REDIRECT_URI', 'http://localhost:8000/
 # YouTube Configuration
 YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY')  # if using API key for search
 YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl"]
+YOUTUBE_REDIRECT_URI = os.getenv('YOUTUBE_REDIRECT_URI', 'http://localhost:8000/auth/youtube/callback')
 
 # Firestore Configuration
 FIRESTORE_PROJECT_ID = os.getenv('FIRESTORE_PROJECT_ID', 'spotify2youtube-449516')
