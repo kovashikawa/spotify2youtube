@@ -40,8 +40,14 @@ build/
 .DS_Store
 Thumbs.db
 
-# Project specific
-*.json
+# Project specific - credentials and secrets (never commit these)
+config/credentials.json
+config/firestore-credentials.json
+config/service_account.json
+config/.spotify_cache
+config/.spotify_token
+config/.youtube_token
+credentials/
 *.pickle
 *.db
 *.sqlite3
@@ -54,7 +60,6 @@ logs/
 .spotify_token
 .youtube_token
 .cache
-config/.spotify_cache
 airflow/airflowVenv
 
 # Jupyter Notebook
