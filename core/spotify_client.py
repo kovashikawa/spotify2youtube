@@ -1,6 +1,7 @@
 import json
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+from spotipy.cache_handler import MemoryCacheHandler
 from spotipy.exceptions import SpotifyException
 from typing import Optional, Dict, Any, List
 
@@ -17,6 +18,26 @@ SPOTIFY_SCOPES = [
     "playlist-modify-public",
     "playlist-modify-private",
 ]
+
+
+def build_spotify_oauth() -> SpotifyOAuth:
+    """
+    Build a SpotifyOAuth manager that keeps its token in memory only.
+
+    spotipy defaults to CacheFileHandler, which writes a single shared
+    ".cache" file in the process working directory on every code exchange
+    and every refresh. That file is not keyed by user, so two users would
+    overwrite each other's token. Tokens are persisted per user in
+    Firestore instead, so the on-disk cache must be disabled.
+    """
+    return SpotifyOAuth(
+        client_id=SPOTIFY_CLIENT_ID,
+        client_secret=SPOTIFY_CLIENT_SECRET,
+        redirect_uri=SPOTIFY_REDIRECT_URI,
+        scope=" ".join(SPOTIFY_SCOPES),
+        open_browser=False,
+        cache_handler=MemoryCacheHandler(),
+    )
 
 
 def _load_token(user_id: str) -> Optional[dict]:
@@ -50,13 +71,7 @@ def get_spotify_client(user_id: str) -> spotipy.Spotify:
             "User must complete the OAuth flow at /auth/spotify first."
         )
 
-    auth_manager = SpotifyOAuth(
-        client_id=SPOTIFY_CLIENT_ID,
-        client_secret=SPOTIFY_CLIENT_SECRET,
-        redirect_uri=SPOTIFY_REDIRECT_URI,
-        scope=" ".join(SPOTIFY_SCOPES),
-        open_browser=False,
-    )
+    auth_manager = build_spotify_oauth()
 
     if auth_manager.is_token_expired(token_info):
         logger.info(f"Spotify token expired for user {user_id}, refreshing...")

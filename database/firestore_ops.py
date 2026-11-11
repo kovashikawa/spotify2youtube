@@ -4,8 +4,23 @@ import datetime
 from typing import Optional, Dict, Any, List
 from config.firestore_config import FirestoreClient
 
-# Initialize Firestore client
-db = FirestoreClient().db
+
+class _LazyFirestore:
+    """
+    Defers Firestore client construction until the first actual call.
+
+    FirestoreClient() reads a service account file at construction time, so
+    building it at import time made `import main` fail outright whenever that
+    file was absent, taking the whole app (including the auth routes, which
+    need no database) down with it.
+    """
+
+    def __getattr__(self, name):
+        return getattr(FirestoreClient().db, name)
+
+
+# Firestore client (constructed on first use, not at import)
+db = _LazyFirestore()
 
 def get_existing_track_link(track_id: str, platform: str) -> Optional[Dict[str, Any]]:
     """
