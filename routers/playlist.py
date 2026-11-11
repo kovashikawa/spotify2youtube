@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, ConfigDict
 
 from utils.helpers import create_search_query, create_spotify_search_query, choose_best_track
@@ -11,19 +11,18 @@ from database.firestore_ops import (
 
 logger = setup_logger(__name__)
 
-# Import functions for Spotify2YouTube conversion
 from core.spotify_client import (
-    get_spotify_oauth_client,
+    get_spotify_client,
     get_playlist_tracks,
     create_spotify_playlist,
-    add_tracks_to_spotify_playlist
-    )
+    add_tracks_to_spotify_playlist,
+)
 from core.youtube_client import (
-    get_youtube_service_oauth,
+    get_youtube_service,
     create_youtube_playlist,
     add_video_to_playlist,
     search_youtube,
-    get_youtube_playlist_items
+    get_youtube_playlist_items,
 )
 
 router = APIRouter()
@@ -48,15 +47,18 @@ class SpotifyToYouTubeConversionRequest(BaseModel):
     )
 
 @router.post("/playlist/spotify-to-youtube", summary="Convert a Spotify playlist to a YouTube playlist")
-async def convert_spotify_to_youtube(request: SpotifyToYouTubeConversionRequest):
+async def convert_spotify_to_youtube(
+    request: SpotifyToYouTubeConversionRequest,
+    user_id: str = Query(..., description="Spotify user ID"),
+):
     try:
         logger.info("Starting Spotify to YouTube conversion")
         cache_hits = 0
         api_calls = 0
 
-        # Initialize clients with OAuth
-        spotify = get_spotify_oauth_client()
-        youtube = get_youtube_service_oauth()
+        # Initialize clients from Firestore-stored tokens
+        spotify = get_spotify_client(user_id)
+        youtube = get_youtube_service(user_id)
         
         # Get user information
         spotify_user = spotify.current_user()
@@ -227,15 +229,18 @@ class YouTubeToSpotifyConversionRequest(BaseModel):
     )
 
 @router.post("/playlist/youtube-to-spotify", summary="Convert a YouTube playlist to a Spotify playlist")
-async def convert_youtube_to_spotify(request: YouTubeToSpotifyConversionRequest):
+async def convert_youtube_to_spotify(
+    request: YouTubeToSpotifyConversionRequest,
+    user_id: str = Query(..., description="Spotify user ID"),
+):
     try:
         logger.info("Starting YouTube to Spotify conversion")
         cache_hits = 0
         api_calls = 0
 
-        # Initialize clients with OAuth
-        spotify = get_spotify_oauth_client()
-        youtube = get_youtube_service_oauth()
+        # Initialize clients from Firestore-stored tokens
+        spotify = get_spotify_client(user_id)
+        youtube = get_youtube_service(user_id)
         
         # Get user information
         spotify_user = spotify.current_user()
